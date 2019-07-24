@@ -181,13 +181,14 @@ class CollectorProxy(DataCollector):
             List of instances of DataCollector that will be notified of events
         """
         self.view = view
+
         self.collectors = {e: [c for c in collectors if e in type(c).__dict__]
                            for e in self.EVENTS}
 
     @inheritdoc(DataCollector)
-    def start_session(self, timestamp, receiver, content):
+    def start_session(self, timestamp, receiver, content, session_id):
         for c in self.collectors['start_session']:
-            c.start_session(timestamp, receiver, content)
+            c.start_session(timestamp, receiver, content, session_id)
 
     @inheritdoc(DataCollector)
     def cache_hit(self, node):
@@ -215,9 +216,9 @@ class CollectorProxy(DataCollector):
             c.content_hop(u, v, main_path)
 
     @inheritdoc(DataCollector)
-    def end_session(self, success=True):
+    def end_session(self, session_id, success=True):
         for c in self.collectors['end_session']:
-            c.end_session(success)
+            c.end_session(session_id, success)
 
     @inheritdoc(DataCollector)
     def results(self):
@@ -297,7 +298,6 @@ class LatencySessionsCollector(DataCollector):
         self.req_latency = 0.0
         self.sess_count = 0
         self.latency = 0.0
-        self.controller =None
         self.sess_latency = collections.defaultdict(int)
         self.current_session = None
         if cdf:
@@ -305,10 +305,11 @@ class LatencySessionsCollector(DataCollector):
 
     @inheritdoc(DataCollector)
     def start_session(self, timestamp, receiver, content, session_id):
-        if session_id not in self.view.active_sessions():
+
+        active_sessions = self.view.active_sessions()
+        if session_id not in active_sessions:
             self.sess_count += 1
             self.sess_latency[session_id] = 0.0
-            self.controller.add_session(session_id)
         self.current_session = session_id
 
     @inheritdoc(DataCollector)
@@ -329,11 +330,11 @@ class LatencySessionsCollector(DataCollector):
             self.latency_data.append(self.sess_latency[session_id])
         self.latency += self.sess_latency[session_id]
         self.sess_latency.pop(session_id)
-        self.controller.delete_session.pop(session_id)
 
     @inheritdoc(DataCollector)
     def results(self):
         results = Tree({'MEAN': self.latency / self.sess_count})
+
         if self.cdf:
             results['CDF'] = cdf(self.latency_data)
         return results
@@ -435,9 +436,9 @@ class CacheHitRatioSessionsCollector(DataCollector):
 
     @inheritdoc(DataCollector)
     def start_session(self, timestamp, receiver, content, session_id):
-        if session_id not in self.view.active_session:
+        active_sessions = self.view.active_sessions()
+        if session_id not in active_sessions:
             self.sess_count += 1
-            self.controller.add_session(session_id)
         if self.off_path_hits:
             source = self.view.content_source(content)
             self.curr_path = self.view.shortest_path(receiver, source)

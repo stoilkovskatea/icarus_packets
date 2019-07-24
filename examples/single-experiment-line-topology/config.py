@@ -52,14 +52,14 @@ experiment['workload'] = {
          'n_contents': 10 ** 2,
          'n_warmup':   9**2,
          'n_measured': 4*10 **4,
-         'alpha':      0.5,
-         'chunks_per_content': [(25,4), (25,2) , (50,3)]
+         'alpha':      0.8,
+         'chunks_per_content': [(25,1), (25,1) , (50,1)]
                            }
 
 # Set cache placement
 experiment['cache_placement']['name'] = 'UNIFORM_NEW'
 experiment['cache_placement']['network_cache'] = 0.05
-experiment['cache_placement']['receiver_option'] = True
+experiment['cache_placement']['receiver_option'] = False
 
 # Set content placement
 experiment['content_placement']['name'] = 'UNIFORM'

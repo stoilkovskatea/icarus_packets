@@ -42,16 +42,12 @@ class LeaveCopyEverywhereUpdated(Strategy):
     def process_event(self, time, packet, type, log, session_id):
         # Route requests to original source and queries caches on the path
 
-        type_chunk = 'interest'
 
         if type == 'interest':
 
             source = self.view.content_source(packet.content)  # get the source
             path = self.view.shortest_path(packet.receiver, source)  # compute path
 
-            if packet.current_node == packet.receiver:
-                self.session_counter+=1
-                session_id = self.session_counter
 
             self.controller.start_session(time, packet.receiver, packet.content, session_id, log)
 
@@ -67,13 +63,13 @@ class LeaveCopyEverywhereUpdated(Strategy):
                     if self.controller.get_content(packet.current_node):
                         serving_node = packet.current_node
                         next_node = packet.current_node # Stop iterating at current node
-                        type_chunk = 'data'
+                        type = 'data'
                         next_hop = 0
 
             else:
                 self.controller.get_content(source)
                 serving_node = source
-                type_chunk = 'data'
+                type = 'data'
                 next_hop = 0
                 time_updated = time
                 next_node = source #stop iterating at source
@@ -86,10 +82,12 @@ class LeaveCopyEverywhereUpdated(Strategy):
 
                 add_event = Event()
                 add_event.log = log
-                add_event.type_chunk = type_chunk
+                add_event.type_chunk = type
                 add_event.timing = time_updated
                 add_event.packet = packet
                 add_event.session_id = session_id
+
+
                 self.controller.queue_push(add_event)
 
         elif type == 'data':
@@ -97,6 +95,7 @@ class LeaveCopyEverywhereUpdated(Strategy):
             self.controller.start_session(time, packet.receiver, packet.content, session_id, log)
 
             if packet.current_node == packet.receiver:
+
                 if self.view.has_cache(packet.current_node):
                     self.controller.put_content(packet.current_node)
                 self.controller.end_session(session_id)
@@ -118,12 +117,8 @@ class LeaveCopyEverywhereUpdated(Strategy):
                 add_event.packet = packet
                 add_event.timing = time_updated
                 add_event.log = log
+                add_event.session_id = session_id
                 self.controller.queue_push(add_event)
-
-
-
-
-
 
 
 @register_strategy('PARTITION')

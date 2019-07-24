@@ -320,6 +320,7 @@ class NetworkView(object):
         """
         if node in self.model.cache:
             return self.model.cache[node].dump()
+            #return self.model.cache[node].dump()
 
     def active_sessions(self):
         return self.model.active_sessions
@@ -449,7 +450,7 @@ class NetworkController(object):
         return self.model.active_sessions.append(session)
 
     def delete_session(self, session):
-        return self.model.active_sessions.pop(session)
+        return self.model.active_sessions.remove(session)
 
     def attach_collector(self, collector):
         """Attach a data collector to which all events will be reported.
@@ -486,8 +487,15 @@ class NetworkController(object):
                             content=content,
                             log=log,
                             session_id=session_id)
+
         if self.collector is not None and self.session['log']:
             self.collector.start_session(timestamp, receiver, content, session_id)
+
+            active_sessions = self.model.active_sessions
+
+
+            if session_id not in active_sessions:
+                self.add_session(session_id)
 
     def forward_request_path(self, s, t, path=None, main_path=True):
         """Forward a request from node *s* to node *t* over the provided path.
@@ -497,6 +505,7 @@ class NetworkController(object):
         s : any hashable type
             Origin node
         t : any hashable type
+            Destination node
             Destination node
         path : list, optional
             The path to use. If not provided, shortest path is used
@@ -665,6 +674,7 @@ class NetworkController(object):
         """
         if self.collector is not None and self.session['log']:
             self.collector.end_session(session_id, success)
+            self.delete_session(session_id)
         self.session = None
 
     def rewire_link(self, u, v, up, vp, recompute_paths=True):
